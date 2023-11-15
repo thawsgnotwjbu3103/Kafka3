@@ -1,0 +1,5 @@
+- CHANGELOG ( 14 / 11 / 2023 ) :
+  - [x] Setup project 
+- CHANGELOG ( 15 / 11 / 2023 ) :
+  - [x] Update structure, adding sqlite as database
+  - [x] Add ping command for checking latency
