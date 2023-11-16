@@ -9,7 +9,7 @@ import {Save} from "../../models/Save";
 
 const save: CommandType = {
     data: new SlashCommandBuilder()
-        .setName("save")
+        .setName("sm")
         .setDescription("save your bruh moments")
         .addStringOption((options: SlashCommandStringOption) =>
             options

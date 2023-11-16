@@ -9,7 +9,8 @@
     "build:log": "changelog generate -f",
     "start": "node dist/app.js",
     "dev": "ts-node --esm src/app.ts",
-    "watch": "nodemon --exec ts-node-esm src/app.ts"
+    "watch": "nodemon --exec ts-node-esm src/app.ts",
+    "test": "echo \\\"Error: no test specified\\\" && exit 1"
   },
   "keywords": [],
   "author": "",
