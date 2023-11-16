@@ -2,7 +2,6 @@ import {
     Client, Collection, GatewayIntentBits, Interaction, REST,
     RESTPostAPIChatInputApplicationCommandsJSONBody, Routes
 } from "discord.js";
-import dotenv from "dotenv"
 import * as path from "path"
 import * as url from "url"
 import glob from "glob"
@@ -10,7 +9,6 @@ import {promisify} from "util"
 import {CommandType} from "./types/Command";
 import {sequelize} from "./helper/database";
 
-dotenv.config()
 
 const __filename: string = url.fileURLToPath(import.meta.url)
 const __dirname: string = path.dirname(__filename)
@@ -87,7 +85,7 @@ const build = async (): Promise<void> => {
         console.log(`Successfully reloaded commands.`);
         await sequelize.authenticate()
         console.log("DB connected")
-        await sequelize.sync({force: process.env.NODE_ENV !== "production"})
+        await sequelize.sync()
         console.log("DB Synced")
     } catch (error) {
         console.error(error);

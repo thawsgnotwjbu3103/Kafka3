@@ -1,0 +1,1 @@
+export const onlyLetterRegex: RegExp = /^[a-zA-Z]+$/
