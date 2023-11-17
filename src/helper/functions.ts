@@ -18,3 +18,13 @@ export const isValidUrl = (s: string): boolean => {
         return false
     }
 }
+
+export const checkValidCommand = (str: string, prefix: string):boolean => {
+    let count = 0;
+    for (const strElement of str) {
+        if(strElement === prefix) {
+            count++
+        }
+    }
+    return count === 1
+}

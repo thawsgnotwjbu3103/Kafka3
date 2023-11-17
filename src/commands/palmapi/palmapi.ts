@@ -42,11 +42,11 @@ const palmapi: CommandType = {
                     messages: [{ content: question.value.toString() }],
                 },
             });
-
+            const FIRST_ELEMENT = 0
             if(!result) return await reject(interaction, "Nah")
-            if(!result[0].candidates) return await reject(interaction, "No.")
-            if(!result[0].candidates[0].content) return await reject(interaction, "I don't wanna answer")
-            const content: string = result[0].candidates[0].content
+            if(!result[FIRST_ELEMENT].candidates) return await reject(interaction, "No.")
+            if(!result[FIRST_ELEMENT].candidates[FIRST_ELEMENT].content) return await reject(interaction, "I don't wanna answer")
+            const content: string = result[FIRST_ELEMENT].candidates[FIRST_ELEMENT].content
             return await interaction.editReply(content).then((result: Message): void => {
                 result.react("🗣️")
             })
