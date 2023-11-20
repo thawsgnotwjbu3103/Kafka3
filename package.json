@@ -28,6 +28,7 @@
     "google-auth-library": "^9.2.0",
     "node-html-to-image": "^4.0.0",
     "pg": "^8.11.3",
+    "sagiri": "^3.4.0",
     "sequelize": "^6.35.0"
   },
   "devDependencies": {

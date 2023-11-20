@@ -1,19 +1,66 @@
 import {
     ActionRowBuilder,
     ButtonBuilder,
+    ButtonInteraction,
     ButtonStyle,
     CommandInteraction,
-    CommandInteractionOption, EmbedBuilder, Encoding,
+    CommandInteractionOption,
+    EmbedBuilder,
+    InteractionCollector,
+    Message,
     SlashCommandBuilder,
-    SlashCommandStringOption
+    SlashCommandStringOption,
 } from "discord.js"
 import {CommandType} from "../../types/Command";
-import {nyaasiHtml, reject} from "../../helper/functions";
+import {reject} from "../../helper/functions";
 import axios, {AxiosResponse} from "axios";
 import * as cheerio from "cheerio"
 import {NyaasiType} from "../../types/NyassiType";
 import {DEFAULT_INDEX, NYAASI_CATEGORY_ARR, NYAASI_FILTER_ARR} from "../../helper/constants";
-import nodeHtmlToImage from "node-html-to-image";
+
+const fetchData = async (filter: string, categories: string, query: string, page: number = 1): Promise<NyaasiType[]> => {
+    const api: string = `https://nyaa.si/?f=${filter}&c=${categories}&q=${query}&p=${page}&o=desc&s=downloads`
+    const htmlPage: AxiosResponse<any, any> = await axios.get(api)
+    const $: cheerio.CheerioAPI = cheerio.load(htmlPage.data)
+    const nyaasi: NyaasiType[] = []
+
+    const tdElement: cheerio.Cheerio<cheerio.Element> = $("tr")
+    tdElement.each((index: number, element: cheerio.Element): void => {
+        const html: cheerio.Cheerio<cheerio.Element> = $(element);
+
+        const category: string = html.find('td a img.category-icon').attr('alt')!!;
+        const title: string = html.find('td[colspan="2"] a:not(.comments)').attr('title')!!;
+        const torrentLink: string = html.find('td.text-center a[href$=".torrent"]').attr('href')!!;
+        const magnetLink: string = html.find('td.text-center a[href^="magnet:"]').attr('href')!!;
+        const size: string = html.find('td.text-center').eq(1).text();
+        const timestamp: string = html.find('td.text-center[data-timestamp]').attr('data-timestamp')!!;
+        const seeders: string = html.find('td.text-center').eq(2).text();
+        const leechers: string = html.find('td.text-center').eq(3).text();
+        const completed: string = html.find('td.text-center').eq(4).text();
+        nyaasi.push({
+            category: category,
+            name: title,
+            link: {
+                torrent: torrentLink,
+                magnet: magnetLink
+            },
+            size: size,
+            date: timestamp,
+            seeders: parseInt(seeders),
+            leechers: parseInt(leechers),
+            downloads: parseInt(completed)
+        })
+    });
+    return nyaasi
+}
+
+const genMarkdownString = (arr: NyaasiType[]): string => {
+    return arr.map((item: NyaasiType): string | undefined => {
+        if (item.name) {
+            return `* [${item.name}](https://nyaa.si/${item.link.torrent}) - **${item.size}**`
+        }
+    }).join("\r\n")
+}
 
 const ping: CommandType = {
     data: new SlashCommandBuilder()
@@ -25,10 +72,10 @@ const ping: CommandType = {
                 .setRequired(true)
                 .setDescription("Input what you want to search"))
         .addStringOption((options: SlashCommandStringOption) =>
-                options
-                    .setName("filter")
-                    .setDescription("Select filter")
-                    .addChoices(...NYAASI_FILTER_ARR))
+            options
+                .setName("filter")
+                .setDescription("Select filter")
+                .addChoices(...NYAASI_FILTER_ARR))
         .addStringOption((options: SlashCommandStringOption) =>
             options
                 .setName("categories")
@@ -41,73 +88,84 @@ const ping: CommandType = {
         const categories: any = interaction.options.get("categories") || NYAASI_CATEGORY_ARR[DEFAULT_INDEX]
         if (!option) return await reject(interaction, "Where's the question mtfk ?")
         if (!option.value) return await reject(interaction, "WTF???")
-        await interaction.deferReply({ephemeral: true});
-        const api: string = `https://nyaa.si/?f=${filter.value}&c=${categories.value}&q=${option.value.toString()}`
-        console.log(`Calling ${api}`)
-        const htmlPage: AxiosResponse<any, any> = await axios.get(api)
-        const $: cheerio.CheerioAPI = cheerio.load(htmlPage.data)
-        const nyaasi: NyaasiType[] = []
-        const pageElementArray: cheerio.Cheerio<cheerio.Element> =
-            $("ul.pagination li:not(.next):not(.disabled):not(.previous .disabled .unavailable)")
+        const reply: Message = await interaction.deferReply({fetchReply: true});
+        let page: number = 1
+        let nyaasi: NyaasiType[] = await fetchData(filter.value, categories.value, option.value.toString(), page)
 
-        const tdElement: cheerio.Cheerio<cheerio.Element> = $("tr")
-        tdElement.each((index: number, element: cheerio.Element): void => {
-            const html = $(element);
+        let maxItem: number = 10
+        let currentIndex: number = 1
+        let tempArr: NyaasiType[] = []
+        tempArr = nyaasi.slice(currentIndex, maxItem)
+        const text: string = genMarkdownString(tempArr)
 
-            // Extract data from the columns within each row
-            const category = html.find('td a img.category-icon').attr('alt')!!;
-            const title = html.find('td[colspan="2"] a').attr('title')!!;
-            const torrentLink = html.find('td.text-center a[href$=".torrent"]').attr('href')!!;
-            const magnetLink = html.find('td.text-center a[href^="magnet:"]').attr('href')!!;
-            const size = html.find('td.text-center').eq(1).text();
-            const timestamp = html.find('td.text-center[data-timestamp]').attr('data-timestamp')!!;
-            const seeders = html.find('td.text-center').eq(2).text();
-            const leechers = html.find('td.text-center').eq(3).text();
-            const completed = html.find('td.text-center').eq(4).text();
-            nyaasi.push({
-                category: category,
-                name: title,
-                link: {
-                    torrent: torrentLink,
-                    magnet: magnetLink
-                },
-                size: size,
-                date: timestamp,
-                seeders: parseInt(seeders),
-                leechers: parseInt(leechers),
-                downloads: parseInt(completed)
-            })
-        });
+        const embed: EmbedBuilder = new EmbedBuilder().setDescription(tempArr.length ? text : "NO CONTENT")
+        const prev: ButtonBuilder = new ButtonBuilder()
+            .setCustomId("PREV")
+            .setLabel("⏮️")
+            .setDisabled(tempArr.length <= 0 || currentIndex <= 1)
+            .setStyle(ButtonStyle.Primary)
 
-        const totalPages: number = parseInt($(pageElementArray[pageElementArray.length - 1]).text())
-        const images = await nodeHtmlToImage({
-            html: nyaasiHtml(nyaasi),
-            quality: 100,
-            type: 'jpeg',
-            puppeteerArgs: {
-                args: ['--no-sandbox'],
-            },
-            encoding: 'binary'
+        const next: ButtonBuilder = new ButtonBuilder()
+            .setCustomId("NEXT")
+            .setLabel("⏭️")
+            .setDisabled(tempArr.length <= 0)
+            .setStyle(ButtonStyle.Primary)
+
+        const buttonRow: ActionRowBuilder<ButtonBuilder> = new ActionRowBuilder<ButtonBuilder>()
+            .setComponents([prev, next])
+
+        await interaction.editReply({embeds: [embed], components: [buttonRow]})
+
+        const collector: InteractionCollector<any> = reply.createMessageComponentCollector({
+            time: 100_000
         })
-
-        const confirm = new ButtonBuilder()
-            .setCustomId('confirm')
-            .setLabel('Confirm Ban')
-            .setStyle(ButtonStyle.Danger);
-
-        const cancel = new ButtonBuilder()
-            .setCustomId('cancel')
-            .setLabel('Cancel')
-            .setStyle(ButtonStyle.Secondary);
-
-        const row = new ActionRowBuilder()
-            .addComponents(cancel, confirm);
-
-        await interaction.editReply({
-            // @ts-ignore
-            files: [images],
-            // @ts-ignore
-            components: [row]
+        collector.on("collect", async (i: ButtonInteraction): Promise<void> => {
+            await reply.reactions.removeAll()
+            if (i.user.id !== interaction.user.id) return
+            if (i.customId === "NEXT") {
+                currentIndex += 1
+                tempArr = nyaasi.slice((currentIndex - 1) * maxItem, maxItem * currentIndex) // GET NEXT ITEMS
+                buttonRow.components[0].setDisabled(false) // 0 is PREV, 1 is NEXT
+                if (!tempArr.length) {
+                    currentIndex -= 1
+                    buttonRow.components[1].setDisabled(true) // 0 is PREV, 1 is NEXT
+                    tempArr = nyaasi.slice((currentIndex - 1) * maxItem, maxItem * currentIndex) // GET THE PREVIOUS ITEMS
+                    const text: string = genMarkdownString(tempArr)
+                    const updatedEmbed: EmbedBuilder = new EmbedBuilder().setDescription(text)
+                    await interaction
+                        .editReply({embeds: [updatedEmbed], components: [buttonRow]})
+                        .then((result: Message): void => {
+                            result.react("❌")
+                        })
+                    i.update({embeds: [updatedEmbed], components: [buttonRow]}).then()
+                } else {
+                    const text: string = genMarkdownString(tempArr)
+                    const updatedEmbed: EmbedBuilder = new EmbedBuilder().setDescription(text)
+                    await interaction.editReply({embeds: [updatedEmbed], components: [buttonRow]}).then()
+                    i.update({embeds: [updatedEmbed], components: [buttonRow]}).then()
+                }
+            }
+            if (i.customId === "PREV") {
+                currentIndex -= 1
+                buttonRow.components[1].setDisabled(false) // 0 is PREV, 1 is NEXT
+                if(currentIndex <= 1) {
+                    currentIndex = 1
+                    tempArr = nyaasi.slice((currentIndex - 1) * maxItem, maxItem * currentIndex)
+                    const text: string = genMarkdownString(tempArr)
+                    const updatedEmbed: EmbedBuilder = new EmbedBuilder().setDescription(text)
+                    buttonRow.components[0].setDisabled(true)
+                    await interaction.editReply({embeds: [updatedEmbed], components: [buttonRow]}).then((result: Message) => {
+                        result.react("❌") // 0 is PREV, 1 is NEXT
+                    })
+                    i.update({embeds: [updatedEmbed], components: [buttonRow]}).then()
+                } else {
+                    tempArr = nyaasi.slice((currentIndex - 1) * maxItem, maxItem * currentIndex)
+                    const text: string = genMarkdownString(tempArr)
+                    const updatedEmbed: EmbedBuilder = new EmbedBuilder().setDescription(text)
+                    await interaction.editReply({embeds: [updatedEmbed], components: [buttonRow]}).then()
+                    i.update({embeds: [updatedEmbed], components: [buttonRow]}).then()
+                }
+            }
         });
     },
 }
