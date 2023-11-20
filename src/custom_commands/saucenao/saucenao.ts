@@ -31,7 +31,7 @@ const saucenao: CustomCommandType = {
         const results: SagiriResult[] = await client(imageUrl, {})
         const embeds: EmbedBuilder[] = results.map((item: SagiriResult, index) => {
             return new EmbedBuilder()
-                .setTitle(`** Source: ${item.url} - Similarity: ${item.similarity} **`)
+                .setTitle(`** Item: ${index + 1} - Similarity: ${item.similarity} **`)
                 .setDescription(`** Artist: ${item.authorName || "Unnamed Author"} || Profile: ${item.authorUrl || "No profile url"} **`)
                 .setURL(item.url)
                 .setImage(item.thumbnail)
