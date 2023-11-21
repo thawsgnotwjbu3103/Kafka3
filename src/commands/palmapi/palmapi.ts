@@ -1,6 +1,6 @@
 import {
     CommandInteraction,
-    CommandInteractionOption,
+    CommandInteractionOption, EmbedBuilder,
     Message,
     SlashCommandBuilder,
     SlashCommandStringOption
@@ -9,6 +9,7 @@ import {CommandType} from "../../types/Command";
 import {DiscussServiceClient} from "@google-ai/generativelanguage"
 import {GoogleAuth} from "google-auth-library"
 import {reject} from "../../helper/functions";
+import {PRIMARY_COLOR} from "../../helper/constants";
 
 const MODEL_NAME: string = "models/chat-bison-001";
 const API_KEY: string = process.env.PALM_SECRET!!;
@@ -29,8 +30,8 @@ const palmapi: CommandType = {
         })
 
         const question: CommandInteractionOption | null = interaction.options.get("question")
-        if(!question) return await reject(interaction, "Bro what ?")
-        if(!question.value) return await reject(interaction, "The hell you want me to do ?")
+        if (!question) return await reject(interaction, "Bro what ?")
+        if (!question.value) return await reject(interaction, "The hell you want me to do ?")
         await interaction.deferReply();
         try {
             const result = await client.generateMessage({
@@ -39,19 +40,20 @@ const palmapi: CommandType = {
                 candidateCount: 1, // Optional. The number of candidate results to generate.
                 prompt: {
                     // Required. Alternating prompt/response messages.
-                    messages: [{ content: question.value.toString() }],
+                    messages: [{content: question.value.toString()}],
                 },
             });
             const FIRST_ELEMENT = 0
-            if(!result) return await reject(interaction, "Nah")
-            if(!result[FIRST_ELEMENT].candidates) return await reject(interaction, "No.")
-            if(!result[FIRST_ELEMENT].candidates[FIRST_ELEMENT].content) return await reject(interaction, "I don't wanna answer")
+            if (!result) return await reject(interaction, "Nah", true)
+            // console.log(result)
+            if (!result[FIRST_ELEMENT].candidates) return await reject(interaction, "No.", true)
+            if (!result[FIRST_ELEMENT].candidates[FIRST_ELEMENT].content) return await reject(interaction, "I don't wanna answer", true)
             const content: string = result[FIRST_ELEMENT].candidates[FIRST_ELEMENT].content
-            return await interaction.editReply(content).then((result: Message): void => {
-                result.react("🗣️")
-            })
+            const embed: EmbedBuilder = new EmbedBuilder().setColor(PRIMARY_COLOR).setDescription(content)
+            await interaction.editReply({embeds: [embed]})
+            return
         } catch (e) {
-            return await reject(interaction, "An error occurred")
+            return await reject(interaction, "An error occurred", true)
         }
     },
 }

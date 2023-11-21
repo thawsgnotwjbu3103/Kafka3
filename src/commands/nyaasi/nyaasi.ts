@@ -16,7 +16,7 @@ import {reject} from "../../helper/functions";
 import axios, {AxiosResponse} from "axios";
 import * as cheerio from "cheerio"
 import {NyaasiType} from "../../types/NyassiType";
-import {DEFAULT_INDEX, NYAASI_CATEGORY_ARR, NYAASI_FILTER_ARR} from "../../helper/constants";
+import {DEFAULT_INDEX, NYAASI_CATEGORY_ARR, NYAASI_FILTER_ARR, PRIMARY_COLOR} from "../../helper/constants";
 
 const fetchData = async (filter: string, categories: string, query: string, page: number = 1): Promise<NyaasiType[]> => {
     const api: string = `https://nyaa.si/?f=${filter}&c=${categories}&q=${query}&p=${page}&o=desc&s=downloads`
@@ -62,10 +62,22 @@ const genMarkdownString = (arr: NyaasiType[]): string => {
     }).join("\r\n")
 }
 
+const updateInteraction = async (
+    interaction: CommandInteraction,
+    i: ButtonInteraction,
+    tempArr: NyaasiType[],
+    buttonRow: ActionRowBuilder<ButtonBuilder>
+): Promise<void> => {
+    const text: string = genMarkdownString(tempArr)
+    const updatedEmbed: EmbedBuilder = new EmbedBuilder().setDescription(text).setColor(PRIMARY_COLOR)
+    await interaction.editReply({embeds: [updatedEmbed], components: [buttonRow]})
+    i.update({embeds: [updatedEmbed], components: [buttonRow]}).then()
+}
+
 const ping: CommandType = {
     data: new SlashCommandBuilder()
         .setName("nyaasi")
-        .setDescription("replies with pong!")
+        .setDescription("Find your things at nyaa.si")
         .addStringOption((options: SlashCommandStringOption) =>
             options
                 .setName("search")
@@ -92,22 +104,27 @@ const ping: CommandType = {
         let page: number = 1
         let nyaasi: NyaasiType[] = await fetchData(filter.value, categories.value, option.value.toString(), page)
 
+
         let maxItem: number = 10
         let currentIndex: number = 1
         let tempArr: NyaasiType[] = []
-        tempArr = nyaasi.slice(currentIndex, maxItem)
+        const totalSlices = Math.ceil(nyaasi.length / maxItem)
+        tempArr = nyaasi.slice(currentIndex - 1, maxItem)
         const text: string = genMarkdownString(tempArr)
 
-        const embed: EmbedBuilder = new EmbedBuilder().setDescription(tempArr.length ? text : "NO CONTENT")
+        const embed: EmbedBuilder = new EmbedBuilder()
+            .setDescription(tempArr.length ? text : "NO CONTENT")
+            .setColor(PRIMARY_COLOR)
+
         const prev: ButtonBuilder = new ButtonBuilder()
             .setCustomId("PREV")
-            .setLabel("⏮️")
+            .setLabel("◀️")
             .setDisabled(tempArr.length <= 0 || currentIndex <= 1)
             .setStyle(ButtonStyle.Primary)
 
         const next: ButtonBuilder = new ButtonBuilder()
             .setCustomId("NEXT")
-            .setLabel("⏭️")
+            .setLabel("▶️")
             .setDisabled(tempArr.length <= 0)
             .setStyle(ButtonStyle.Primary)
 
@@ -124,47 +141,23 @@ const ping: CommandType = {
             if (i.user.id !== interaction.user.id) return
             if (i.customId === "NEXT") {
                 currentIndex += 1
-                tempArr = nyaasi.slice((currentIndex - 1) * maxItem, maxItem * currentIndex) // GET NEXT ITEMS
                 buttonRow.components[0].setDisabled(false) // 0 is PREV, 1 is NEXT
-                if (!tempArr.length) {
+                if (currentIndex > totalSlices) {
                     currentIndex -= 1
                     buttonRow.components[1].setDisabled(true) // 0 is PREV, 1 is NEXT
-                    tempArr = nyaasi.slice((currentIndex - 1) * maxItem, maxItem * currentIndex) // GET THE PREVIOUS ITEMS
-                    const text: string = genMarkdownString(tempArr)
-                    const updatedEmbed: EmbedBuilder = new EmbedBuilder().setDescription(text)
-                    await interaction
-                        .editReply({embeds: [updatedEmbed], components: [buttonRow]})
-                        .then((result: Message): void => {
-                            result.react("❌")
-                        })
-                    i.update({embeds: [updatedEmbed], components: [buttonRow]}).then()
-                } else {
-                    const text: string = genMarkdownString(tempArr)
-                    const updatedEmbed: EmbedBuilder = new EmbedBuilder().setDescription(text)
-                    await interaction.editReply({embeds: [updatedEmbed], components: [buttonRow]}).then()
-                    i.update({embeds: [updatedEmbed], components: [buttonRow]}).then()
                 }
+                tempArr = nyaasi.slice((currentIndex - 1) * maxItem, maxItem * currentIndex) // GET NEXT ITEMS
+                await updateInteraction(interaction, i, tempArr, buttonRow)
             }
             if (i.customId === "PREV") {
                 currentIndex -= 1
                 buttonRow.components[1].setDisabled(false) // 0 is PREV, 1 is NEXT
-                if(currentIndex <= 1) {
+                if (currentIndex <= 1) {
                     currentIndex = 1
-                    tempArr = nyaasi.slice((currentIndex - 1) * maxItem, maxItem * currentIndex)
-                    const text: string = genMarkdownString(tempArr)
-                    const updatedEmbed: EmbedBuilder = new EmbedBuilder().setDescription(text)
                     buttonRow.components[0].setDisabled(true)
-                    await interaction.editReply({embeds: [updatedEmbed], components: [buttonRow]}).then((result: Message) => {
-                        result.react("❌") // 0 is PREV, 1 is NEXT
-                    })
-                    i.update({embeds: [updatedEmbed], components: [buttonRow]}).then()
-                } else {
-                    tempArr = nyaasi.slice((currentIndex - 1) * maxItem, maxItem * currentIndex)
-                    const text: string = genMarkdownString(tempArr)
-                    const updatedEmbed: EmbedBuilder = new EmbedBuilder().setDescription(text)
-                    await interaction.editReply({embeds: [updatedEmbed], components: [buttonRow]}).then()
-                    i.update({embeds: [updatedEmbed], components: [buttonRow]}).then()
                 }
+                tempArr = nyaasi.slice((currentIndex - 1) * maxItem, maxItem * currentIndex)
+                await updateInteraction(interaction, i, tempArr, buttonRow)
             }
         });
     },

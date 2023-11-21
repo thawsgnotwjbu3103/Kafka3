@@ -61,12 +61,12 @@ const addMoment: CommandType = {
 
         try {
             await Moment.bulkCreate(data, {returning: true})
-            return await interaction.reply({
+            const replied: Message =  await interaction.reply({
                 content: "Saved!",
                 fetchReply: true
-            }).then((result: Message): void => {
-                result.react("✅")
             })
+            await replied.react("✅")
+            return
         } catch (e) {
             return await reject(interaction, "An error occurred")
         }

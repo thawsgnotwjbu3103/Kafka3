@@ -46,20 +46,20 @@ const getMoment: CommandType = {
 
         const data: MomentType = result.dataValues
         if (isValidUrl(data.context)) {
-            return await interaction.reply({
+            const replied: Message = await interaction.reply({
                 files: [data.context],
                 fetchReply: true
-            }).then((result: Message): void => {
-                result.react("🤣")
             })
+            await replied.react("🤣")
+            return
         }
 
-        return await interaction.reply({
+        const replied: Message = await interaction.reply({
             content: data.context,
             fetchReply: true,
-        }).then((result: Message): void => {
-            result.react("🤣")
         })
+        await replied.react("🤣")
+        return
     }
 }
 

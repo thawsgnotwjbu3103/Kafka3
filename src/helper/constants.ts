@@ -17,7 +17,6 @@ export const NYAASI_FILTER_ARR: APIApplicationCommandOptionChoice<string>[] = [
         value: "2"
     }
 ]
-
 export const NYAASI_CATEGORY_ARR: APIApplicationCommandOptionChoice<string>[] = [
     {
         name: "All category",
@@ -116,3 +115,6 @@ export const NYAASI_CATEGORY_ARR: APIApplicationCommandOptionChoice<string>[] = 
         value: "6_2"
     },
 ]
+
+export const PRIMARY_COLOR = 0xeb86c6
+
