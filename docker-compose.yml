@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  kafka3-db:
+    image: postgres:latest
+    container_name: kakfa3_container
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  postgres_data:
+
