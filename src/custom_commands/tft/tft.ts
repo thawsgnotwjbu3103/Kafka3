@@ -1,12 +1,25 @@
 import {CustomCommandType} from "../../types/Command";
-import {Message} from "discord.js";
-import axios from "axios";
+import {EmbedBuilder, Message} from "discord.js";
+import axios, {AxiosResponse} from "axios";
 import * as cheerio from "cheerio"
-import {AxiosResponse} from "axios/index";
 import {Champion, TftTrait, TftType} from "../../types/TftType";
-import * as util from "util"
+import {PRIMARY_COLOR} from "../../helper/constants";
 
-const fetchData = async (): Promise<void> => {
+const tft: CustomCommandType = {
+    name: "tft",
+    async execute(message: Message): Promise<void> {
+        const data: TftType[] = await fetchData()
+        const text: string = data.map((item: TftType): string => {
+            return `* [${item.metaName}](${item.builder}) - Cost: ${item.cost}`
+        }).join("\r\n")
+        const embed: EmbedBuilder = new EmbedBuilder()
+            .setDescription(text)
+            .setColor(PRIMARY_COLOR)
+        await message.reply({embeds: [embed]})
+    }
+}
+
+const fetchData = async (): Promise<TftType[]> => {
     const url: string = "https://lolchess.gg/meta"
     const htmlPage: AxiosResponse<any, any> = await axios.get(url)
     const $: cheerio.CheerioAPI = cheerio.load(htmlPage.data)
@@ -26,18 +39,17 @@ const fetchData = async (): Promise<void> => {
                 .text()
                 .trim()
         const traitElement: cheerio.Cheerio<cheerio.Element> = html.find(".tft-hexagon-image")
-        traitElement.each((index: number, element: cheerio.Element):void => {
+        traitElement.each((index: number, element: cheerio.Element): void => {
             const htmlTrait: cheerio.Cheerio<cheerio.Element> = $(element)
             const trait: TftTrait = {
                 stack: "bronze",
-                name: "",
                 url: "",
-                isHeadline: false
+                isHeadliner: false
             }
             let traitType: string = htmlTrait.attr("class")!!
             trait.url = htmlTrait.find("img").attr("src")!!
             traitType = traitType.split(" ")[1]
-            trait.isHeadline = htmlTrait.find(".headliner").length > 0
+            trait.isHeadliner = htmlTrait.find('.headliner').length > 0
             switch (traitType) {
                 case "tft-hexagon-image--chromatic":
                     trait.stack = "chromatic"
@@ -55,18 +67,19 @@ const fetchData = async (): Promise<void> => {
             traits.push(trait)
         })
         const championElement: cheerio.Cheerio<cheerio.Element> = html.find(".tft-champion-box")
-        championElement.each((index: number, element: cheerio.Element):void => {
+        championElement.each((index: number, element: cheerio.Element): void => {
             const championHtml: cheerio.Cheerio<cheerio.Element> = $(element)
             const items: string[] = []
             const url: string = championHtml.find(".tft-champion img").attr("src")!!
             const name: string = championHtml.find(".tft-champion .name").text()!!
             const cost: string = championHtml.find(".tft-champion .cost").text()!!
+            const isHeadliner: boolean = championHtml.find(".tft-champion .headliner-ico").length > 0
             const itemsHtml: cheerio.Cheerio<cheerio.Element> = championHtml.find(".tft-items img")
-            itemsHtml.each((index: number, element: cheerio.Element):void => {
+            itemsHtml.each((index: number, element: cheerio.Element): void => {
                 const url: string = $(element).attr("src")!!
                 items.push(url)
             })
-            champions.push({name, url, items, cost})
+            champions.push({name, url, items, cost, isHeadliner})
         })
         const cost: string = html.find(".guide-meta__deck__column.cost span.d-block").text()
         const builder: string = html.find(".guide-meta__deck__column.open-builder.mr-3 a").attr("href")!!
@@ -78,15 +91,7 @@ const fetchData = async (): Promise<void> => {
             builder
         })
     })
-    console.log(util.inspect(data, true, null, false))
-}
-
-const tft: CustomCommandType = {
-    name: "tft",
-    async execute(message: Message): Promise<void> {
-        await fetchData()
-        await message.reply("OK")
-    }
+    return data
 }
 
 export default tft

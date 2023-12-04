@@ -1,14 +1,14 @@
 export interface TftTrait {
-    name: string;
     stack: "chromatic" | "gold" | "silver" | "bronze";
     url: string,
-    isHeadline: boolean
+    isHeadliner: boolean
 }
 
 export interface Champion {
     name: string;
     cost: string;
     url: string;
+    isHeadliner: boolean;
     items: string[] | undefined
 }
 
