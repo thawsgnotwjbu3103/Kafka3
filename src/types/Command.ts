@@ -1,4 +1,4 @@
-import { CommandInteraction, Message} from "discord.js";
+import {CommandInteraction, Message} from "discord.js";
 
 export interface CommandType {
     data: any;

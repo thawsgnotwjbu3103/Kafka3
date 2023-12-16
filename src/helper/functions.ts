@@ -1,9 +1,8 @@
-import {CommandInteraction, Message} from "discord.js";
+import {CommandInteraction} from "discord.js";
 import * as url from "url";
-import {NyaasiType} from "../types/NyassiType";
 
-export const reject = async (interaction: CommandInteraction, message: string, isSent: boolean = false): Promise<void> => {
-    const replied: Message = isSent ? await interaction.editReply({
+export const reject = async (interaction: CommandInteraction, message: string, isSent: boolean = false) => {
+    const replied = isSent ? await interaction.editReply({
         content: message,
     }) : await interaction.reply({
         content: message,
@@ -13,7 +12,7 @@ export const reject = async (interaction: CommandInteraction, message: string, i
     return
 }
 
-export const isValidUrl = (s: string): boolean => {
+export const isValidUrl = (s: string)  => {
     try {
         new url.URL(s);
         return true
@@ -22,7 +21,7 @@ export const isValidUrl = (s: string): boolean => {
     }
 }
 
-export const checkValidCommand = (str: string, prefix: string): boolean => {
+export const checkValidCommand = (str: string, prefix: string) => {
     let count = 0;
     for (const strElement of str) {
         if (strElement === prefix) {
@@ -32,7 +31,7 @@ export const checkValidCommand = (str: string, prefix: string): boolean => {
     return count === 1
 }
 
-export const trimString = (str: string, max: number): string => {
+export const trimString = (str: string, max: number) => {
     if (str) {
         return ((str.length > max) ? `${str.slice(0, max - 3)}...` : str)
     }

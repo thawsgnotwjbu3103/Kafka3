@@ -1,14 +1,6 @@
 import {CustomCommandType} from "../../types/Command";
-import {
-    ActionRowBuilder,
-    Attachment,
-    ButtonBuilder, ButtonInteraction,
-    ButtonStyle,
-    EmbedBuilder, InteractionCollector,
-    Message,
-    MessageReference
-} from "discord.js";
-import sagiri, {SagiriResult} from "sagiri";
+import {ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, EmbedBuilder, Message} from "discord.js";
+import sagiri from "sagiri";
 import {PRIMARY_COLOR} from "../../helper/constants";
 
 const updateInteraction = async (
@@ -30,16 +22,16 @@ const updateInteraction = async (
 
 const saucenao: CustomCommandType = {
     name: "saucenao",
-    async execute(message: Message): Promise<void> {
+    async execute(message: Message) {
         const client = sagiri(process.env.SAUCENAO_APIKEY!!)
-        let imageUrl: string = ""
-        const params: string = message.content.split(" ")[1]
-        const reference: MessageReference | null = message.reference
+        let imageUrl = ""
+        const params = message.content.split(" ")[1]
+        const reference = message.reference
         if (!reference) imageUrl = params
         if (!params) {
             if (reference && reference.messageId) {
-                const msg: Message = await message.channel.messages.fetch(reference.messageId)
-                const firstAttachment: Attachment | undefined = msg.attachments.first()
+                const msg = await message.channel.messages.fetch(reference.messageId)
+                const firstAttachment = msg.attachments.first()
                 if (firstAttachment && firstAttachment.url) {
                     imageUrl = firstAttachment.url
                 }
@@ -55,9 +47,9 @@ const saucenao: CustomCommandType = {
         let currentIndex = 1;
         let maxItem = 1
 
-        const results: SagiriResult[] = await client(imageUrl, {})
-        const embeds: EmbedBuilder[] = results.map((item: SagiriResult, index) => {
-            const text: string = `
+        const results = await client(imageUrl, {})
+        const embeds = results.map((item, ) => {
+            const text = `
                 # ${item.site} Illustration Details
                 
                 - **URL:** [${item.site} Illustration](${item.url})
@@ -76,29 +68,29 @@ const saucenao: CustomCommandType = {
 
         const totalSlices = Math.ceil(embeds.length / maxItem)
 
-        let currentEmbeds: EmbedBuilder = embeds.slice(currentIndex - 1, maxItem)[0]
+        let currentEmbeds = embeds.slice(currentIndex - 1, maxItem)[0]
 
-        const prev: ButtonBuilder = new ButtonBuilder()
+        const prev = new ButtonBuilder()
             .setCustomId("PREV")
             .setLabel("◀️")
             .setDisabled(currentIndex <= 1 || embeds.length <= 0)
             .setStyle(ButtonStyle.Primary)
 
-        const next: ButtonBuilder = new ButtonBuilder()
+        const next = new ButtonBuilder()
             .setCustomId("NEXT")
             .setLabel("▶️")
             .setDisabled(!currentEmbeds)
             .setStyle(ButtonStyle.Primary)
 
-        const buttonRow: ActionRowBuilder<ButtonBuilder> = new ActionRowBuilder<ButtonBuilder>()
+        const buttonRow = new ActionRowBuilder<ButtonBuilder>()
             .addComponents([prev, next])
 
-        const reply: Message = await message.reply({embeds: [currentEmbeds], components: [buttonRow]})
-        const collector: InteractionCollector<any> = reply.createMessageComponentCollector({
+        const reply = await message.reply({embeds: [currentEmbeds], components: [buttonRow]})
+        const collector = reply.createMessageComponentCollector({
             time: 100_000
         })
 
-        collector.on("collect", async (i: ButtonInteraction): Promise<void> => {
+        collector.on("collect", async (i: ButtonInteraction) => {
             if (i.user.id !== message.author.id) return
 
             if (i.customId === "PREV") {
