@@ -2,8 +2,10 @@ import {
     Client,
     Collection,
     GatewayIntentBits,
-    Interaction, Message, REST,
-    RESTPostAPIChatInputApplicationCommandsJSONBody, Routes
+    Message,
+    REST,
+    RESTPostAPIChatInputApplicationCommandsJSONBody,
+    Routes
 } from "discord.js";
 import url from "url";
 import path from "path";
@@ -12,8 +14,8 @@ import glob from "glob";
 import {CommandType, CustomCommandType} from "../types/Command";
 import {checkValidCommand} from "../helper/functions";
 
-const __filename: string = url.fileURLToPath(import.meta.url)
-const __dirname: string = path.dirname(__filename)
+const __filename = url.fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 const globPromise = promisify(glob)
 
 class KafkaClient extends Client {
@@ -32,7 +34,7 @@ class KafkaClient extends Client {
         });
     }
 
-    async importFile(filePath: string): Promise<any> {
+    async importFile(filePath: string) {
         return (await import(filePath))?.default;
     }
 
@@ -46,10 +48,10 @@ class KafkaClient extends Client {
 
         const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [];
         this.commands = new Collection();
-        const commandFolderPath: string = path.resolve(__dirname, "../commands");
-        const commandFiles: string[] = await globPromise(`${commandFolderPath}/*/*{.ts,.js}`, {windowsPathsNoEscape: true})
-        await Promise.all(commandFiles.map(async (filePath: string): Promise<void> => {
-            const command: CommandType = await this.importFile(`file://${filePath}`)
+        const commandFolderPath = path.resolve(__dirname, "../commands");
+        const commandFiles = await globPromise(`${commandFolderPath}/*/*{.ts,.js}`, {windowsPathsNoEscape: true})
+        await Promise.all(commandFiles.map(async filePath => {
+            const command = await this.importFile(`file://${filePath}`)
             if ('data' in command && 'execute' in command) {
                 this.commands.set(command.data.name, command);
                 commands.push(command.data.toJSON());
@@ -59,11 +61,11 @@ class KafkaClient extends Client {
         }))
 
         this.customCommands = new Collection();
-        const customCommandFolderPath: string = path.resolve(__dirname, "../custom_commands")
-        const customCommandFiles: string[] = await globPromise(`${customCommandFolderPath}/*/*{.ts,.js}`, {windowsPathsNoEscape: true})
-        await Promise.all(customCommandFiles.map(async (filePath: string): Promise<void> => {
-            const customCommand: CustomCommandType = await this.importFile(`file://${filePath}`)
-            if('name' in customCommand && 'execute' in customCommand) {
+        const customCommandFolderPath = path.resolve(__dirname, "../custom_commands")
+        const customCommandFiles = await globPromise(`${customCommandFolderPath}/*/*{.ts,.js}`, {windowsPathsNoEscape: true})
+        await Promise.all(customCommandFiles.map(async filePath => {
+            const customCommand = await this.importFile(`file://${filePath}`)
+            if ('name' in customCommand && 'execute' in customCommand) {
                 this.customCommands.set(customCommand.name, customCommand)
             } else {
                 console.log(`[WARNING] The command at ${filePath} is missing a required "name" or "execute" property.`);
@@ -71,15 +73,15 @@ class KafkaClient extends Client {
         }))
 
 
-        this.once("ready", (c: Client) => {
+        this.once("ready", (c) => {
             if (!c.user) return;
             console.log(`Ready! Logged in as ${c.user.tag}`);
         })
 
-        this.on("interactionCreate", async (interaction: Interaction): Promise<void> => {
+        this.on("interactionCreate", async (interaction) => {
             if (!interaction.isChatInputCommand()) return
-            const interactionClient: KafkaClient = interaction.client as KafkaClient;
-            const command: CommandType | undefined = interactionClient.commands.get(interaction.commandName);
+            const interactionClient = interaction.client as KafkaClient;
+            const command = interactionClient.commands.get(interaction.commandName);
             if (!command) return console.error(`No command matching ${interaction.commandName} was found.`);
             try {
                 await command.execute(interaction)
@@ -98,17 +100,17 @@ class KafkaClient extends Client {
             }
         })
 
-        this.on("messageCreate", async (message: Message): Promise<void> => {
-            const content: string = message.content
-            const CUSTOM_PREFIX: string = process.env.CUSTOM_PREFIX!!
-            if(!content.startsWith(CUSTOM_PREFIX) || !checkValidCommand(content, CUSTOM_PREFIX)) return;
+        this.on("messageCreate", async (message: Message) => {
+            const content = message.content
+            const CUSTOM_PREFIX = process.env.CUSTOM_PREFIX!!
+            if (!content.startsWith(CUSTOM_PREFIX) || !checkValidCommand(content, CUSTOM_PREFIX)) return;
             const PREFIX_INDEX = 1
             const COMMAND_INDEX = 0
-            const text: string = content.slice(PREFIX_INDEX)
-            const commandName: string | null= text.split(" ")[COMMAND_INDEX] || null
-            if(!commandName) return
-            const interactionClient: KafkaClient = message.client as KafkaClient
-            const command: CustomCommandType |undefined =  interactionClient.customCommands.get(commandName)
+            const text = content.slice(PREFIX_INDEX)
+            const commandName = text.split(" ")[COMMAND_INDEX] || null
+            if (!commandName) return
+            const interactionClient = message.client as KafkaClient
+            const command = interactionClient.customCommands.get(commandName)
             if (!command) return console.error(`No command matching ${commandName} was found.`);
             try {
                 await command.execute(message)
@@ -120,7 +122,7 @@ class KafkaClient extends Client {
             }
         })
 
-        const rest: REST = new REST().setToken(process.env.CLIENT_TOKEN!!)
+        const rest = new REST().setToken(process.env.CLIENT_TOKEN!!)
 
         try {
             console.log(`Started refreshing ${this.commands.size} application (/) commands.`);

@@ -5,7 +5,7 @@ const ping: CommandType = {
     data: new SlashCommandBuilder()
         .setName("ping")
         .setDescription("replies with pong!"),
-    async execute(interaction: CommandInteraction): Promise<void> {
+    async execute(interaction: CommandInteraction) {
         const delay = Math.abs(Date.now() - interaction.createdTimestamp)
         await interaction.reply(`Delay: ${delay}ms - Pong!`);
     },

@@ -1,4 +1,4 @@
-import { DataTypes } from 'sequelize'
+import {DataTypes} from 'sequelize'
 import {sequelize} from "../helper/database";
 
 export const Moment = sequelize.define('TBL_SAVE', {

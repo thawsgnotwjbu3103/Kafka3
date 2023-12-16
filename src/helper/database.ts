@@ -1,6 +1,7 @@
 import {Sequelize} from "sequelize";
 import logging from "./logging";
 import dotenv from "dotenv"
+
 dotenv.config()
 
 export const sequelize: Sequelize = new Sequelize(

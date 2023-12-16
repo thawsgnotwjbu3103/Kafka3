@@ -1,9 +1,4 @@
-import {
-    CommandInteraction, CommandInteractionOption, Message,
-    SlashCommandAttachmentOption,
-    SlashCommandBuilder,
-    SlashCommandStringOption
-} from "discord.js"
+import {CommandInteraction, SlashCommandBuilder} from "discord.js"
 import {CommandType} from "../../types/Command";
 import {Moment} from "../../models/Moment";
 import {MomentType} from "../../types/MomentType";
@@ -14,26 +9,26 @@ const addMoment: CommandType = {
     data: new SlashCommandBuilder()
         .setName("sm")
         .setDescription("add your moments")
-        .addStringOption((options: SlashCommandStringOption) =>
+        .addStringOption(options =>
             options
                 .setName("indicator")
                 .setRequired(true)
                 .setDescription("a name for this moment"))
-        .addAttachmentOption((options: SlashCommandAttachmentOption) =>
+        .addAttachmentOption(options =>
             options
                 .setRequired(false)
                 .setName("quote_attachment")
                 .setDescription("add a attachment quote"))
-        .addStringOption((options: SlashCommandStringOption) =>
+        .addStringOption(options =>
             options
                 .setName("quote_text")
                 .setRequired(false)
                 .setDescription("add a text quote")),
-    async execute(interaction: CommandInteraction): Promise<void> {
-        const attachment: CommandInteractionOption | null = interaction.options.get("quote_attachment")
-        const text: CommandInteractionOption | null = interaction.options.get("quote_text")
-        const indicator: CommandInteractionOption | null = interaction.options.get("indicator")
-        const guildId: string | null = interaction.guildId
+    async execute(interaction: CommandInteraction) {
+        const attachment = interaction.options.get("quote_attachment")
+        const text = interaction.options.get("quote_text")
+        const indicator = interaction.options.get("indicator")
+        const guildId = interaction.guildId
         const data: MomentType[] = []
 
         if (!guildId) return await reject(interaction, "Not accepted!")
@@ -42,7 +37,7 @@ const addMoment: CommandType = {
         if (indicator.value && !onlyLetterRegex.test(indicator.value.toString())) return await reject(interaction, "Not accepted!")
 
         if (text && text.value) {
-            if(!onlyLetterRegex.test(text.value.toString())) return await reject(interaction, "Not accepted!")
+            if (!onlyLetterRegex.test(text.value.toString())) return await reject(interaction, "Not accepted!")
             data.push({
                 indicator: indicator.value as string,
                 guildId: guildId as string,
@@ -61,7 +56,7 @@ const addMoment: CommandType = {
 
         try {
             await Moment.bulkCreate(data, {returning: true})
-            const replied: Message =  await interaction.reply({
+            const replied = await interaction.reply({
                 content: "Saved!",
                 fetchReply: true
             })
